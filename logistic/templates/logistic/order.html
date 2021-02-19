@@ -1,0 +1,163 @@
+{% extends 'base.html' %}
+{% block title %} Orders {% endblock %}
+{% block style %} 
+<style>
+    body {
+        background-color: var(--light);
+    }
+
+    .container {
+        height: 73.5vh;
+       
+    }
+
+    .footer {
+        position: absolute;
+        bottom: 0;
+        width: 100%;
+    }
+
+    .card {
+            /* box-shadow: 2px 2px 0.5em #ccc; */
+            border:0px;
+            background-color: #fff;
+            padding: 0.5rem;
+            overflow: hidden;
+            display: flex;
+            flex-direction: row;
+            justify-content: start;
+            align-items: center;
+    }
+
+    .card .card-img-top {
+            height: 50px;
+            width: 50px;
+            object-fit: cover;
+            border-radius: 50%;
+    }
+
+    .info {
+        display: flex;
+    }
+    .info p {
+        margin:0;
+        display: flex;
+        flex-direction: column;
+        margin:0 0.4em;
+        font-size: 0.9em;
+    }
+
+    p span {
+        font-size: 0.8em;
+        color:#ccc;
+    }
+
+    .pagination {
+        display: flex;
+        justify-content: center;
+        font-size: 0.8em;
+    }
+</style>
+{% endblock %}
+{% block content %}
+    <div class="main-container">
+        <div class="container mt-5">
+
+            <form class="my-2">
+                <div class="form-row">
+                    <div class="col-7">
+                        <input class="form-control mr-sm-2" type="search" name="query" placeholder="Search" aria-label="Search">
+                    </div>
+                    <div class="col py-2">
+                        <button class="btn btn-success text-white my-2 my-sm-0" type="submit">Search</button>
+                        
+                        {% if user.is_shopowner %}
+                            <button class="btn btn-success text-white my-2 my-sm-0" type="button" id="create-order">Create an Order</button>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                
+            </form>
+
+            <div class="user-list">
+                {% for order in orders %}
+                    <div class="card my-2">
+                        <img src="/media/{{ order.shop_keeper.userprofile.image }}" alt="" class="card-img-top mr-3">
+
+                        <div class="info">
+                            <p>
+                                <span>Order Id</span>
+                                <a href="/order-details/{{ order.order_id }}/"> {{ order.order_id }} </a>
+                            </p>
+                            <p>
+                                <span>Shop Keeper</span>
+                                <a href="/account/profile/?user={{ order.shop_keeper.username }}">{{ order.shop_keeper.username }}</a>
+                                
+                            </p>
+
+                            <p>
+                                <span>Location</span>
+                               {{ order.shop_keeper.location}}
+                            </p>
+
+                            <p>
+                                <span>Delivery Status</span>
+                                {{ order.is_delivered }}
+                            </p>
+
+                            <p>
+                                <span>Created On</span>
+                                {{ order.created_on }}
+                            </p>
+
+                            <p>
+                                <span>Payment Status</span>
+                                {{ order.payment_status }}
+                            </p>
+                        </div>
+                    </div>                
+                {% endfor %}
+            </div>
+            
+
+            <div class="pagination mt-2">
+                <span class="step-links">
+                    {% if orders.has_previous %}
+                    <a href="?page=1">&laquo; first</a>
+                    <a href="?page={{ orders.previous_page_number }}">previous</a>
+                    {% endif %}
+                    <span class="current">
+                    Page {{ orders.number }} of {{ orders.paginator.num_pages }}.
+                    </span>
+                    {% if orders.has_next %}
+                        <a href="?page={{ orders.next_page_number }}">next</a>
+                        <a href="?page={{ orders.paginator.num_pages }}">last &raquo;</a>
+                    {% endif %}
+                </span>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+{% block javascript %}
+<script>
+    var createOrderBtn = $("#create-order");
+    createOrderBtn.on("click", function(e) {
+        $.ajax({
+            url:'/create-order/',
+            type:'POST',
+            success:function(res) {
+                let response = JSON.parse(res);
+
+                if(response.message == "success") {
+                    window.location.assign(response.url)
+                }
+            },
+            error:function(err) {
+                console.error(err);
+            }
+        })
+    });
+
+</script>
+{% endblock %}

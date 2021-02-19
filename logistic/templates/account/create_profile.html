@@ -1,0 +1,180 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %} Profile {% endblock %}
+
+{% block style %}
+    <!-- <link rel="stylesheet" href="{% static 'css/dashboard.css' %}"> -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css"
+integrity="sha512-xodZBNTC5n17Xt2atTPuE1HxjVMSvLVW9ocqUKLsCC5CXdbqCmblAshOMAS6/keqq/sMZMZ19scR4PsZChSR7A=="
+crossorigin=""/>
+{% endblock %}
+
+{% block content %}
+<style>
+  #map {
+    height: 300px;
+    width: 100%;
+  }
+  .navbar {
+    width: 100%;
+    box-shadow: 1px 1px 0.3em #343434;
+  }
+  .container {
+      margin-top: 80px;
+  }
+  .spinner {
+            position: absolute;
+            top:0;
+            left:0;
+            right: 0;
+            bottom: 0;
+            z-index: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: #a3a3a36b;
+        }
+
+        .spinner div i {
+            font-size: 2em;
+            font-size: 2.5em;
+            color: var(--primary);
+            animation-name: spin;
+            animation-duration: 2s;
+            animation-timing-function: linear;
+            animation-iteration-count: infinite;
+        }
+
+        @keyframes spin {
+            from {
+                transform:rotate(0deg);
+            }
+            to {
+                transform: rotate(360deg);
+            }
+        }
+</style>
+<div class="spinner d-none">
+  <div class="">
+      <i class="fa fa-spinner"></i>
+  </div>
+</div>
+<div class="container-fluid my-5 d-flex justify-content-center">
+    <div class="col-md-8">
+        <form class="form-horizontal" action="" method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+              <div class="row">
+                <div class="col-md-6">
+                  <div class="form-group">
+                    <label for="id_number">{{ form.first_name.label}}</label>
+                    {{ form.first_name }}
+                  </div>
+
+                  <div class="form-group">
+                    <label for="department">{{ form.last_name.label}}</label>
+                    {{ form.last_name }}
+                  </div>
+        
+                  <div class="form-group">
+                    <label for="employee_status">{{ form.surname.label }}</label>
+                    {{ form.surname }}
+                  </div> 
+        
+                  <div class="form-group">
+                    <label for="phone_number">{{ form.phone_number.label }}</label>
+                    {{ form.phone_number }}
+                  </div>
+
+                  <div class="form-group">
+                    <label for="county">{{ form.email.label }}</label>
+                    {{ form.email }}
+                  </div>
+    
+                  <div class="form-group">
+                    <label for="profile_pic">{{ form.image.label }}</label>
+                    {{ form.image }}
+                  </div>
+                  
+                  <div class="form-group">
+                    <label for="employee_status">{{ form.location.label_tag }}</label>
+                    {{ form.location }}
+                  </div> 
+              </div>
+
+              <div class="col-md-6">
+
+                <div class="form-group">
+                  <label for="employee_status">{{ form.account_name.label }}</label>
+                  {{ form.account_name }}
+                </div> 
+
+                <div class="form-group">
+                  <label for="employee_status">{{ form.geom.label }}</label>
+                  {{ form.geom }}
+                </div> 
+
+                <div id="map" class="mt-1">
+
+                </div>
+                
+              </div>
+              </div>              
+              {% if form.email.value %}
+                <input type="submit" name="Login" value="Update Profile" class="btn btn-success mt-2">
+              {% else %}
+                <input type="submit" name="Login" value="Create Profile" class="btn btn-success mt-2">
+              {% endif %}
+              
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block javascript %} 
+<script src="{% static 'js/addControl.js' %}"></script>
+<script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"
+integrity="sha512-XQoYMqMTK8LvdxXYG3nZ448hOEQiglfqkJs1NOQV44cWnUrBc8PkAOcXy20w0vlaXaVUearIOBhiXZ5V3ynxwA=="
+crossorigin=""></script>
+<script>
+  // spinner to indicate an action
+  $('#payment_form').on("submit", function(e) {
+      // load the spinner
+      $('.spinner').toggleClass('d-none');
+  });
+
+  // create a map instance
+  var map = L.map('map', {
+    center:[-0.889958448, 36.38755613],
+    zoom:12
+  });
+    
+  var shopsData;
+  var myLocation;
+
+  var accessToken = 'pk.eyJ1IjoiZGF1ZGk5NyIsImEiOiJjanJtY3B1bjYwZ3F2NGFvOXZ1a29iMmp6In0.9ZdvuGInodgDk7cv-KlujA';
+
+    // tileLayer
+  var mapBoxOutdoor = L.tileLayer('https://api.mapbox.com/styles/v1/{id}/tiles/{z}/{x}/{y}?access_token='+ accessToken , {
+    attribution: 'Map data &copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors, <a href="https://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, Imagery © <a href="https://www.mapbox.com/">Mapbox</a>',
+    maxZoom: 18,
+    id: 'mapbox/streets-v11',
+    tileSize: 512,
+    zoomOffset: -1,
+    accessToken: accessToken
+  }).addTo(map);
+
+  var userLocationMarker = L.marker([-0.889958448, 36.38755613], {
+    draggable:true
+  }).addTo(map);
+
+  userLocationMarker.on("dragend", function(e) {
+    // update the WKT string
+    console.log(e);
+    let coord = e.target.getLatLng();
+    let val = 'SRID=4326;POINT ('+ coord.lng + " " + coord.lat +')';
+    $("#id_geom").val(val);
+  });
+
+  // geolocation option 
+</script>
+{% endblock %}

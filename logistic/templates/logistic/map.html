@@ -1,0 +1,472 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %} Map {% endblock %}
+
+{% block style %} 
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css"
+integrity="sha512-xodZBNTC5n17Xt2atTPuE1HxjVMSvLVW9ocqUKLsCC5CXdbqCmblAshOMAS6/keqq/sMZMZ19scR4PsZChSR7A=="
+crossorigin=""/>
+<link rel="stylesheet" href="{% static 'css/MarkerCluster.css' %}">
+<link rel="stylesheet" href="{% static 'css/MarkerCluster.Default.css' %}">
+<link rel="stylesheet" href="{% static 'css/map.css' %}">
+<link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.css" />
+<style>
+    .search {
+        top:2%;
+        /* left:30%; */
+        z-index: 900;
+        width: 100vw;
+        position: relative;
+    }
+
+    .search .form-control {
+        border-radius: 0;
+    }
+    .result-list {
+        position: absolute;
+        width: 40%;
+    }
+    .list-group-item:hover {
+        background-color: blueviolet;
+        color:white;
+    }
+
+    .btn-route {
+        font-size: 18px;
+        padding: 0 0.25em !important;
+    }
+    .modal-dialog {
+        height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="search">
+        <input type="text" name="query" id="query" class="form-control" placeholder="Search shop by Name ...">
+        <div class="result-list list-group" id="search-results">
+
+        </div>
+    </div>
+    <div class="map" id="map">
+        
+    </div>
+
+    <!-- location modal for routing on various regions -->
+    <div class="modal fade" tabindex="-1" id="location-modal">
+        <div class="modal-dialog">
+          <div class="modal-content">
+            <div class="modal-body">
+                <p class="text-center">Choose Location</p>
+                <form action="" method="post" id="user-location-form" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" value="" id="is-user-location">
+                        <label class="form-check-label" for="is-user-location">
+                          Use My Location
+                        </label>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="location-name">Route</label>
+                        <select class="form-control" id="location-name">
+                          <option value="SITE">Site</option>
+                          <option value="KARAGITA">Karagita</option>
+                          <option value="KANJU">Kanju</option>
+                        </select>
+                    </div>
+                    <small class="text-danger" id="error-message"></small>
+
+                    <div class="form-group mt-2">
+                        <button type="submit" class="btn btn-sm btn-success" id="confirm-location">Submit</button>
+                        <button type="button" class="btn btn-sm btn-warning" data-dismiss="modal" id="dismiss-location">Cancel</button>
+                    </div>
+                </form>
+            </div>
+          </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+{% block javascript %} 
+<script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"
+integrity="sha512-XQoYMqMTK8LvdxXYG3nZ448hOEQiglfqkJs1NOQV44cWnUrBc8PkAOcXy20w0vlaXaVUearIOBhiXZ5V3ynxwA=="
+crossorigin=""></script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet-omnivore/0.3.4/leaflet-omnivore.min.js"></script>
+<script src="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.js"></script>
+
+<script src="https://unpkg.com/corslite@0.0.7/corslite.js"></script>
+<script src="https://unpkg.com/polyline@0.2.0/src/polyline.js"></script>
+
+<script src="/static/js/L.Routing.GraphHopper.js"></script>
+<script src="/static/js/L.Routing.js"></script>
+
+<script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
+
+<script src="{% static 'js/leaflet.markercluster-src.js' %}"></script>
+<script>
+    var map = L.map('map', {
+        center:[ -0.889958448, 36.38755613],
+        zoom:12
+    });
+    
+    var shopsData;
+    var myLocation;
+
+    var accessToken = 'pk.eyJ1IjoiZGF1ZGk5NyIsImEiOiJjanJtY3B1bjYwZ3F2NGFvOXZ1a29iMmp6In0.9ZdvuGInodgDk7cv-KlujA';
+
+    // tileLayer
+    var mapBoxOutdoor = L.tileLayer('https://api.mapbox.com/styles/v1/{id}/tiles/{z}/{x}/{y}?access_token='+ accessToken , {
+        attribution: 'Map data &copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors, <a href="https://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, Imagery © <a href="https://www.mapbox.com/">Mapbox</a>',
+        maxZoom: 18,
+        id: 'mapbox/streets-v11',
+        tileSize: 512,
+        zoomOffset: -1,
+        accessToken: accessToken
+    }).addTo(map);
+
+    // shopping icon
+    var shoppingIcon = L.icon({
+        iconUrl:'/static/images/shopping.png',
+        iconSize:[24, 24]
+    });
+
+    var userIcon = L.icon({
+        iconUrl:'/static/images/user.png',
+        iconSize:[24, 24]
+    });
+
+    // user location marker
+    var userLocationMarker = L.marker([0,0], {
+        icon:userIcon
+    });
+
+    // cluster layer 
+    var shopsCluster = L.markerClusterGroup({
+        maxClusterRadius: 120,
+		iconCreateFunction: function (cluster) {
+			var markers = cluster.getAllChildMarkers();
+			var n = markers.length;
+			return L.divIcon({ html: n, className: 'custom-cluster', iconSize: L.point(30, 30) });
+		},
+		//Disable all of the defaults:
+        spiderfyOnMaxZoom: false, 
+        showCoverageOnHover: false, 
+        zoomToBoundsOnClick: true
+    }).addTo(map);
+
+    // shops layer
+    var shops = L.geoJSON(null, {
+        onEachFeature:function(feature, layer) {
+            let popupString = "<h5>" + feature.properties.account_name + "</h5>";
+            layer.bindPopup(popupString)
+        },
+        pointToLayer:function(feature, latLng) {
+            return L.marker(latLng, {icon:shoppingIcon})
+        }
+    });
+
+    // shops.addTo(map);
+
+    // fetch shops
+    fetch("/shops-data")
+    .then(res => res.json())
+    .then(response => {
+        let { customers } = response;
+        customers = JSON.parse(customers);
+        shopsData = JSON.parse(JSON.stringify(customers));
+
+        shops.addData(customers);
+
+        // update cluster
+        updateClusterLayer(customers);
+    })
+    .catch(error => {
+        console.error(error);
+    });
+
+    function updateClusterLayer(data) {
+        data.features.forEach((element, i )=> {
+            let popupString = getPopupString(element);
+
+            // console.log(element.geometry.co)
+            let marker = L.marker(
+                [...element.geometry.coordinates].reverse(),
+                {   
+                    title:i,
+                    icon:shoppingIcon
+                }
+            ).bindPopup(popupString);
+            
+            marker.number = i;
+            shopsCluster.addLayer(marker);
+        });
+    }
+    // fetch areas
+    function getPopupString(element) {
+        return "<div class='popup-content'>" +
+                "<h5 class='mx-3 my-1'>" + element.properties.account_name + "</h5>"+
+                "<div class='px-2'>"+
+                    "<p class='my-2'><b>Account No.</b> </br>" + element.properties.account_number +"</p>" +
+                    "<p class='my-2'><b>Location</b> </br>" + element.properties.location +"</p>" +
+                    "<p class='my-2'><b>Route</b> </br>" + element.properties.route_name +"</p>" +
+                    "<button class='btn btn-sm btn-outline-primary my-2' onclick=getDirections([" + element.geometry.coordinates + "])>Directions</button>"+
+                "</div>"+
+                "</div>";
+    }
+
+    // layer control
+    var baseLayer = {
+
+    };
+
+    var overlay = {
+        'Shops Cluster':shopsCluster,
+    };
+
+    L.control.layers(baseLayer, overlay).addTo(map);
+
+    function getDirections(coordinates) {
+        // update
+        // update the destination
+        let latLng = L.latLng(coordinates.reverse());
+        let waypoints = routerControl.getWaypoints();
+
+        if(!myLocation) {
+            alert("Kindly allow geolocation or add a Starting point");
+        }
+
+        routerControl.setWaypoints([
+            waypoints[0].latLng,
+            latLng
+        ]);
+    }
+
+    var geolocationControl = new L.Control({position:"topleft"});
+    geolocationControl.onAdd = function(map) {
+        let div = L.DomUtil.create("button", "btn btn-locate");
+
+        div.innerHTML = "<img src='/static/images/geolocate.svg' alt='geolocate'>";
+
+        div.addEventListener("click", function(e) {
+            map.locate();
+        });
+
+        return div;
+    }
+
+    map.addControl(geolocationControl);
+
+    // map location event
+    map.on("locationfound", function(e) {
+        // get the user location
+        console.log(e);
+
+        // flyto user location
+        map.flyTo(e.latlng, 16);
+
+        // add user location marker
+        userLocationMarker.setLatLng(e.latlng).addTo(map);
+
+        myLocation = e.latlng;
+
+        // update waypoints
+        // let waypoints = routerControl.getWaypoints();
+
+        // routerControl.setWaypoints([
+        //     e.latlng,
+        //     waypoints[1].latLng,
+        // ]);
+        
+    });
+
+    map.on("locationerror", function(e) {
+        console.log(e);
+    });
+    
+    // create a routing control
+    var routerControl = L.Routing.control({
+        router: L.Routing.mapbox('pk.eyJ1IjoiZGF1ZGk5NyIsImEiOiJjanJtY3B1bjYwZ3F2NGFvOXZ1a29iMmp6In0.9ZdvuGInodgDk7cv-KlujA'),
+        collapsible:true,
+        waypoints: [],
+        geocoder: L.Control.Geocoder.nominatim(),
+        createMarker: function(i, wp) {
+            var options = {
+                icon:shoppingIcon
+            };
+
+            let marker;
+            
+            if(wp.name == "My Location") {
+                marker = L.marker(wp.latLng, {
+                    icon:userIcon
+                }).bindPopup("My Location");
+            } else {
+                let popupString = getPopupString(wp.feature);
+                marker = L.marker(wp.latLng, options).bindPopup(popupString);
+            }
+
+            return marker;
+        },
+        lineOptions:{
+            styles:[
+                {color: '#666', opacity: 1, weight: 2}
+            ],
+            addWaypoints:false
+        }
+    }).addTo(map);
+
+    routerControl.on("routesfound", function(e) {
+        console.log(e);
+    });
+
+    // search shops
+    var searchInput = document.getElementById("query");
+    var searchResultTab = document.getElementById("search-results");
+
+    searchInput.addEventListener("input", function(e) {
+        console.log("Change");
+        let value = e.target.value;
+        searchResultTab.innerHTML = "";
+
+        if(value == "") {
+            searchResultTab.innerHTML = "";
+        } else {
+            let shops = filterShopByName(value);
+
+            // update the list
+            if(shops.length == 0) {
+                searchResultTab.innerHTML = "<p class='text-black'>No results found.</p>";
+                return;
+            }
+
+            updateResultsList(shops);
+        }  
+
+    });
+
+    function filterShopByName(name) {
+        let filterResults = shopsData.features.filter(shop => {
+            if(shop.properties.account_name.toLowerCase().includes(name.toLowerCase())) {
+                return shop;
+            }
+        });
+
+
+        if(filterResults.length > 10) {
+            return filterResults.slice(0, 10);
+        }
+
+        return filterResults;
+    }
+
+    function updateResultsList(shopsResults) {
+        console.log(shopsResults);
+        let docFrag = document.createDocumentFragment();
+
+        shopsResults.forEach(shop => {
+            let listItem = document.createElement("li");
+            listItem.classList.add('list-group-item');
+
+            listItem.setAttribute("data-coord", shop.geometry.coordinates);
+            listItem.setAttribute("data-account", shop.properties.account_number);
+            listItem.textContent = shop.properties.account_name;
+
+            // add event listener
+            listItem.addEventListener("click", function(e) {
+                // get the coordinates and zoom to the feature
+                let coordinates = this.getAttribute("data-coord");
+                let account = this.getAttribute("data-account");
+                console.log(account);
+
+                let shopSearch = shopsData.features.find(sh => sh.properties.account_number == account);
+                console.log(shopSearch);
+
+                coordinates = coordinates.split(",").reverse();
+                map.flyTo(coordinates, 16);
+
+                // create a popup
+                var popup =  L.popup()
+                    .setLatLng(coordinates)
+                    .setContent(getPopupString(shopSearch))
+                    .openOn(map);
+
+                searchResultTab.innerHTML = "";
+                searchInput.value = this.textContent;
+            });
+
+            docFrag.append(listItem);
+        });
+
+        searchResultTab.innerHTML = "";
+        searchResultTab.append(docFrag);
+    }
+
+    // get vehicle route by regions
+    var routeRegionControl = new L.Control({position:"topleft"});
+    routeRegionControl.onAdd = function(map) {
+        let div = L.DomUtil.create("button", "btn btn-locate btn-route");
+
+        div.innerHTML = "<i class='fa fa-arrows'></i>";
+
+        div.addEventListener("click", function(e) {
+            // display a area modal
+            $('#location-modal').modal('show');
+        });
+
+        return div;
+    }
+
+    routeRegionControl.addTo(map);
+
+    // submit function
+    let regionInput = $("#location-name");
+    let userLocationInput = $("#is-user-location")[0];
+    $("#confirm-location").on("click", function(e) {
+        e.preventDefault();
+
+        // get the location value
+        let value = regionInput.val();
+        let isUserLocation = userLocationInput.checked;
+
+        // filter the data
+        var shopsInRegion = shopsData.features.filter(feature => feature.properties.location == value);
+        
+        // create an array of waypoints 
+        var wayPoints = shopsInRegion.map(feature => {
+            return {
+                name:feature.properties.account_name,
+                latLng:L.latLng([...feature.geometry.coordinates].reverse()),
+                feature:feature
+            }
+        });
+
+        // check if the user location is 
+        if(isUserLocation) {
+            // prepend the waypoints
+            let wayPoint = {
+                name:"My Location",
+                latLng:myLocation,
+                feature:{}
+            }
+
+            wayPoints.unshift(wayPoint);
+        }
+
+        // update direction control waypoints
+        routerControl.setWaypoints(wayPoints);
+
+        // hide the modal
+        $('#location-modal').modal('hide');
+
+        // remove the cluster layer
+        map.removeLayer(shopsCluster);
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,62 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %} Landlord Registration {% endblock %}
+{% block style %}
+<style>
+    .container {
+        margin-top: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .container form {
+        min-width: 80%;
+        box-shadow: 2px 2px 1em #ddd,
+                    2px 2px 2em #ccc;
+    }
+</style> 
+<link rel="stylesheet" href="{% static 'css/footer.css' %}">
+{% endblock %}
+{% block content %}
+<div class="container">
+    <form action="" method="post" class="mt-5 px-2 py-2">
+        <h5>{{ title }}</h5>
+        {% csrf_token %}
+        <div class="form-row">
+            <div class="col-6">
+                {{ form.errors }}
+
+                {{ form.username.label_tag }}
+                {{ form.username }}
+
+                {{ form.email.label_tag }}
+                {{ form.email }}
+
+                {{ form.first_name.label_tag }}
+                {{ form.first_name }}
+                
+                {{ form.last_name.label_tag }}
+                {{ form.last_name }}
+                
+            </div>
+            <div class="col-6">
+                {{ form.phone_number.label_tag }}
+                {{ form.phone_number }}
+
+                {{ form.location.label_tag }}
+                {{ form.location }}
+
+                {{ form.password1.label_tag }}
+                {{ form.password1 }}
+
+                {{ form.password2.label_tag }}
+                {{ form.password2 }}
+            </div>
+        </div>
+        <button type="submit" class="btn btn-success mt-3 w-100">{{ submit }}</button>
+    </form>
+</div>   
+{% endblock %}
+{% block javascript %} 
+    <script src="{% static 'js/addControl.js' %}"></script>
+{% endblock %}

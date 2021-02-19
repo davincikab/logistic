@@ -1,0 +1,65 @@
+{% extends 'base.html' %}
+{% block title %} Home {% endblock %}
+
+{% block style %} 
+<style>
+    .container-fluid {
+        margin: 0;
+        background-color: blueviolet;
+        display: flex;
+        position: relative;
+        background-image: url(/static/images/bg-image.png);
+        background-size: cover;
+        background-blend-mode: color;
+        background-repeat: no-repeat;
+    }
+
+    .img-section {
+      
+        height: 40vh;
+        /* mix-blend-mode: color-dodge; */
+    }
+
+    .section-search {
+        position: absolute;
+        height: 40vh;
+        width:80vw;
+        left:10vw;
+        bottom: -60%;
+        background-color: white;
+        box-shadow: 4px 4px 0.9em rgb(53, 53, 53);
+    }
+
+    .container {
+        margin-top: 15rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="w-50 img-section">
+        <!-- <h5>Logist</h5> -->
+    </div>
+
+    <div class="section-search py-5 px-4">
+        <h5>Find your Area</h5>
+
+        <form class="form-floating">
+            <input type="text" class="form-control" id="floatingInputValue" placeholder="name@example.com" value="">
+            <label for="floatingInputValue">Search Your Area ...</label>
+        </form>
+    </div>
+</div>
+
+<!-- <div class="container">
+    <h3>OUR SERVICES</h3>
+</div>
+
+<div class="">
+    <h3>GOODS AND SERVICES</h3>
+</div> -->
+{% endblock %}
+{% block javascript %} 
+<!-- area filter -->
+{% endblock %}

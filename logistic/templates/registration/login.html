@@ -1,0 +1,42 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %} Login {% endblock %}
+{% block style %} 
+    <style>
+        .container {
+            display: flex;
+            justify-content: center;
+        }
+        .container .card {
+            min-width: 400px;
+        }
+    </style>
+    <link rel="stylesheet" href="{% static 'css/footer.css' %}">
+{% endblock %}
+{% block content %}
+<div class="container my-4">
+    <div class="card">
+        {% if form.errors %}
+            <small class="text-danger">
+                Your username and password didn't match.
+                Please try again.
+            </small>
+        {% else %}
+            <!-- <p>Please, use the following form to log-in:</p> -->
+        {% endif %}
+        <form action="" method="post" class="px-2 py-2">
+            <h5>Login</h5>
+            {% csrf_token %}
+            {{ form.as_p }}
+            <input type="hidden" name="next" value="{{ next }}" />
+            <button type="submit" class="btn btn-success w-100">Submit</button>
+            <small>
+                <a href="{% url 'password_reset' %}" class="text-small">Reset Password</a>
+            </small>
+        </form>
+    </div>
+</div>
+{% endblock %}
+{% block javascript %} 
+    <script src="{% static 'js/addControl.js' %}"></script>
+{% endblock %}

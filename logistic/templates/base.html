@@ -1,0 +1,110 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %} {% endblock %}</title>
+
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/font-awesome/4.7.0/css/font-awesome.min.css" integrity="sha384-wvfXpqpZZVQGK6TAh5PVlGOfQNHSoD2xbE+QkPxCAFlNEevoEH3Sl0sibVcOQVnN" crossorigin="anonymous">
+    <!-- <link rel="stylesheet" href="{% static 'bootstrap/bootstrap.css' %}"> -->
+    <!-- CSS only -->
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-BmbxuPwQa2lc/FVzBcNJ7UAyJxM6wuqIj61tLrc4wSX0szH/Ev+nYRRuWlolflfl" crossorigin="anonymous">
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <!-- CSS only -->
+    
+    {% block style %} 
+    {% endblock %}
+
+</head>
+<body>
+    <!-- Navigation bar -->
+    <nav class="navbar navbar-expand-lg navbar-light bg-white">
+        <a class="navbar-brand" href="{% url 'home' %}">
+          Kanini Haraka Logistics
+        </a>
+        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+          </button>
+          <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav">
+              <li class="nav-item {% if section == 'home' %} active {% endif %}">
+                <a class="nav-link" href="{% url 'home' %}">Home <span class="sr-only">(current)</span></a>
+              </li>
+              
+              {% if user.is_authenticated and user.is_employee %}
+                <li class="nav-item {% if section == 'map' %} active {% endif %}">
+                  <a class="nav-link" href="{% url 'map' %}" tabindex="-1">Map</a>
+                </li>
+              {% endif %}
+              
+              {% if user.is_authenticated and user.is_admin %}
+                <li class="nav-item {% if section == 'employees' %} active {% endif %}">
+                  <a class="nav-link" href="#" tabindex="-1">Employees</a>
+                </li>
+
+                <li class="nav-item {% if section == 'dashboard' %} active {% endif %}">
+                  <a class="nav-link" href="#" tabindex="-1">Dashboard</a>
+                </li>
+
+                <li class="nav-item {% if section == 'dashboard' %} active {% endif %}">
+                  <a class="nav-link" href="{% url 'vehicle-list' %}" tabindex="-1">Vehicles</a>
+                </li>
+              {% endif %}
+
+              <li class="nav-item {% if section == 'orders' %} active {% endif %}">
+                <a class="nav-link" href="{% url 'order' %}" tabindex="-1">Orders</a>
+              </li>
+
+              <li class="nav-item {% if section == 'dashboard' %} active {% endif %}">
+                <a class="nav-link" href="{% url 'order' %}" tabindex="-1">About</a>
+              </li>
+
+            </ul>
+
+            <ul class="navbar-nav">
+              {% if user.is_authenticated %}
+              <li class="nav-item">
+                <a class="nav-link" href="{% url 'logout' %}">Logout</a>
+              </li>
+
+              <li class="nav-item">
+                <a class="nav-link" href="{% url 'profile' %}"> {{ user.username }}</a>
+              </li>
+              {% else %}
+                <li class="nav-item">
+                  <a class="nav-link" href="{% url 'signup' %}">Register</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="{% url 'login' %}">Login</a>
+                </li>
+              {% endif %}
+            </ul>
+            
+          </div>
+    </nav>
+
+    {% if messages %}
+      <ul class="messages">
+        {% for message in messages %}
+        <div class="alert alert-{{ message.tags }}" role="alert">
+          {{ message }}
+        </div>
+        {% endfor %}
+      </ul>
+  {% endif %}
+
+    {% block content %}
+    {% endblock %}
+
+    <div class="footer bg-dark mt-4" >
+
+    </div>
+
+    <script src="{% static 'js/jquery.js' %}"></script>
+    <!-- JavaScript Bundle with Popper -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta2/dist/js/bootstrap.bundle.min.js" integrity="sha384-b5kHyXgcpbZJO/tY9Ul7kGkf1S0CWuKcCD38l8YkeH8z8QjE0GmW1gYU5S9FOnJ0" crossorigin="anonymous"></script>
+    {% block javascript %} {% endblock %}
+    
+</body>
+</html>

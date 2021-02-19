@@ -1,0 +1,17 @@
+.leaflet-touch .leaflet-bar a {
+    line-height: 20px;
+    font-size: 1.2em;
+    height: 20px;
+    width: 20px;
+}
+
+#file-upload-button {
+    background-color: red;
+    border:0px solid;
+}
+
+.footer {
+    height: 60px;
+    width: 100%;
+}
+
